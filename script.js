@@ -4,6 +4,7 @@ const appState = {
   width: 0,
   height: 0,
   nodes: [],
+  simulation: null, // Запазваме симулацията за resize
 };
 
 const modalOverlay = document.getElementById("modalOverlay");
@@ -19,24 +20,18 @@ modalOverlay.addEventListener("click", (event) => {
   }
 });
 
-// ---------------------------------------------------------
-// АВТОМАТИЧНО ЗАРЕЖДАНЕ НА data.csv
-// ---------------------------------------------------------
-d3.csv("data.csv")
+// Зареждане на данните
+d3.csv("./data.csv?v=" + new Date().getTime())
   .then(function (data) {
-    // Скриване на съобщението за зареждане
     document.getElementById("loadingMsg").style.display = "none";
-
     processData(data);
-
-    // Активиране на търсачката
     document.getElementById("searchInput").disabled = false;
     document.getElementById("searchBtn").disabled = false;
   })
   .catch(function (error) {
     console.error("Грешка при зареждане:", error);
     document.getElementById("loadingMsg").innerText =
-      "Грешка: Файлът data.csv не може да бъде зареден. Уверете се, че използвате локален сървър (напр. Live Server).";
+      "Грешка: Файлът data.csv не може да бъде зареден.";
   });
 
 function processData(data) {
@@ -125,6 +120,8 @@ function drawGraph(nodes, links) {
       d3.forceCollide().radius((d) => radius(d.type) + 50),
     );
 
+  appState.simulation = simulation; // Запазваме референция за resize
+
   const link = gCanvas
     .append("g")
     .attr("class", "links")
@@ -144,7 +141,11 @@ function drawGraph(nodes, links) {
     .append("circle")
     .attr("r", (d) => radius(d.type))
     .attr("fill", (d) => color(d.type))
+    // Тултипът работи най-вече при десктоп
     .on("mouseover", function (event, d) {
+      // Проверка за сензорен екран (за да не се показва тултип при тъч)
+      if (window.matchMedia("(hover: none)").matches) return;
+
       if (d.type === "subject" && d.roles.length > 0) {
         tooltip.transition().duration(200).style("opacity", 1);
 
@@ -156,18 +157,19 @@ function drawGraph(nodes, links) {
         const [x, y] = d3.pointer(event, container);
         let tooltipX = x + 15;
         let tooltipY = y - 10;
-        if (tooltipX + 400 > width) tooltipX = x - 420;
+        if (tooltipX + 300 > container.clientWidth) tooltipX = x - 320;
 
         tooltip.style("left", tooltipX + "px").style("top", tooltipY + "px");
       }
       d3.select(this).style("stroke", "#2c3e50").style("stroke-width", "3px");
     })
     .on("mousemove", function (event, d) {
+      if (window.matchMedia("(hover: none)").matches) return;
       if (d.type === "subject") {
         const [x, y] = d3.pointer(event, container);
         let tooltipX = x + 15;
         let tooltipY = y - 10;
-        if (tooltipX + 400 > width) tooltipX = x - 420;
+        if (tooltipX + 300 > container.clientWidth) tooltipX = x - 320;
 
         tooltip.style("left", tooltipX + "px").style("top", tooltipY + "px");
       }
@@ -176,6 +178,7 @@ function drawGraph(nodes, links) {
       tooltip.transition().duration(500).style("opacity", 0);
       d3.select(this).style("stroke", "#fff").style("stroke-width", "2px");
     })
+    // Извикване на модалния прозорец при Клик / Touch
     .on("click", function (event, d) {
       if (event.defaultPrevented) return;
 
@@ -183,7 +186,7 @@ function drawGraph(nodes, links) {
         tooltip.style("opacity", 0);
 
         document.getElementById("modalTitle").innerHTML =
-          `Подробно приложение на: <span style="color:#e74c3c">${d.id}</span>`;
+          `Приложение на: <span style="color:#e74c3c">${d.id}</span>`;
 
         let rolesHtml = d.roles.map((r) => `<li>${r}</li>`).join("");
         document.getElementById("modalContent").innerHTML =
@@ -191,7 +194,22 @@ function drawGraph(nodes, links) {
 
         modalOverlay.style.display = "flex";
       }
-    });
+    })
+    // Специално за по-добро докосване при мобилни (визуална реакция)
+    .on(
+      "touchstart",
+      function () {
+        d3.select(this).style("stroke", "#2c3e50").style("stroke-width", "4px");
+      },
+      { passive: true },
+    )
+    .on(
+      "touchend",
+      function () {
+        d3.select(this).style("stroke", "#fff").style("stroke-width", "2px");
+      },
+      { passive: true },
+    );
 
   node
     .append("text")
@@ -233,6 +251,25 @@ function drag(simulation) {
     .on("end", dragended);
 }
 
+// --- ДОБАВЕНО: ПРЕОРАЗМЕРЯВАНЕ (RESIZE LISTENER) ---
+// Когато екранът (или телефонът) се завърти/промени размер, центрираме пак
+window.addEventListener("resize", () => {
+  if (!appState.simulation) return;
+  const container = document.getElementById("graph-container");
+  const newWidth = container.clientWidth;
+  const newHeight = container.clientHeight;
+
+  appState.width = newWidth;
+  appState.height = newHeight;
+
+  appState.simulation.force(
+    "center",
+    d3.forceCenter(newWidth / 2, newHeight / 2),
+  );
+  appState.simulation.alpha(0.3).restart(); // Събуждаме симулацията, за да се намести
+});
+
+// --- ЛОГИКА ЗА ТЪРСЕНЕТО ---
 document.getElementById("searchBtn").addEventListener("click", performSearch);
 document
   .getElementById("searchInput")
@@ -254,7 +291,10 @@ function performSearch() {
   );
 
   if (targetNode) {
-    const scale = 2.5;
+    // На мобилно приближаваме малко по-слабо, за да не се губи контекстът
+    const isMobile = window.innerWidth <= 600;
+    const scale = isMobile ? 1.5 : 2.5;
+
     appState.svg
       .transition()
       .duration(1000)
