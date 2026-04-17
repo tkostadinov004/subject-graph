@@ -211,7 +211,7 @@ svg:active {
   input[type="text"] {
     width: 100%;
   }
-  button {
+  button:not(#modalCloseBtn) {
     width: 100%;
   }
   .instructions {
