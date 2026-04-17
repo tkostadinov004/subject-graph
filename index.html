@@ -10,39 +10,27 @@
   <body>
     <h1>Мрежа на предметите и професионалните направления</h1>
     <div class="controls">
-      <div id="loadingMsg">Зареждане на данни...</div>
-      <div class="control-group">
-        <input
-          type="text"
-          id="searchInput"
-          list="subject-list"
-          placeholder="Напишете името на предмета..."
-          disabled
-        />
-        <datalist id="subject-list"></datalist>
-        <button id="searchBtn" disabled>Търси</button>
-      </div>
-
-      <div class="instructions">
-        Червено = Предмет | Синьо = Сфера. Задръжте или
-        <b>кликнете/докоснете</b> червените точки за детайлен списък. Можете да
-        местите и мащабирате графиката.
-      </div>
+        <div class="control-group">
+            <input type="text" id="searchInput" list="subject-list" placeholder="Напишете името на предмета..." />
+            <datalist id="subject-list"></datalist>
+            <button id="searchBtn">Търси</button>
+        </div>
+        <div class="instructions">Червено = Предмет | Синьо = Сфера. Задръжте или <b>кликнете/докоснете</b> червените точки за детайлен списък. Можете да местите и мащабирате графиката.</div>
     </div>
 
     <div id="graph-container">
-      <svg id="network"></svg>
-      <div id="tooltip"></div>
+        <svg id="network"></svg>
+        <div id="tooltip"></div>
     </div>
 
     <div id="modalOverlay">
-      <div id="modalBox">
-        <button id="modalCloseBtn">&times;</button>
-        <h2 id="modalTitle">Заглавие</h2>
-        <div id="modalContent">Съдържание</div>
-      </div>
+        <div id="modalBox">
+            <button id="modalCloseBtn">&times;</button>
+            <h2 id="modalTitle">Заглавие</h2>
+            <div id="modalContent">Съдържание</div>
+        </div>
     </div>
-
+    
     <script src="script.js"></script>
   </body>
 </html>
