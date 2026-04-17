@@ -115,8 +115,6 @@ svg:active {
 #tooltip li {
   margin-bottom: 8px;
 }
-
-/* --- СТИЛОВЕ ЗА МОДАЛНИЯ ПРОЗОРЕЦ ПРИ КЛИК --- */
 #modalOverlay {
   position: fixed;
   top: 0;
@@ -169,4 +167,10 @@ svg:active {
   margin-bottom: 15px;
   line-height: 1.5;
   color: #34495e;
+}
+#loadingMsg {
+  text-align: center;
+  color: #e74c3c;
+  font-weight: bold;
+  margin-bottom: 10px;
 }

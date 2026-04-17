@@ -19,26 +19,27 @@ modalOverlay.addEventListener("click", (event) => {
   }
 });
 
-document
-  .getElementById("csvFileInput")
-  .addEventListener("change", function (event) {
-    const file = event.target.files[0];
-    if (!file) return;
+// ---------------------------------------------------------
+// АВТОМАТИЧНО ЗАРЕЖДАНЕ НА data.csv
+// ---------------------------------------------------------
+d3.csv("data.csv")
+  .then(function (data) {
+    // Скриване на съобщението за зареждане
+    document.getElementById("loadingMsg").style.display = "none";
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const csvText = e.target.result;
-      processData(csvText);
+    processData(data);
 
-      document.getElementById("searchInput").disabled = false;
-      document.getElementById("searchBtn").disabled = false;
-    };
-    reader.readAsText(file);
+    // Активиране на търсачката
+    document.getElementById("searchInput").disabled = false;
+    document.getElementById("searchBtn").disabled = false;
+  })
+  .catch(function (error) {
+    console.error("Грешка при зареждане:", error);
+    document.getElementById("loadingMsg").innerText =
+      "Грешка: Файлът data.csv не може да бъде зареден. Уверете се, че използвате локален сървър (напр. Live Server).";
   });
 
-function processData(csvText) {
-  const data = d3.csvParse(csvText);
-
+function processData(data) {
   const nodesMap = new Map();
   const links = [];
   const subjectListDatalist = document.getElementById("subject-list");
@@ -108,12 +109,8 @@ function drawGraph(nodes, links) {
   appState.height = height;
   appState.nodes = nodes;
 
-  // ---------------------------------------------------------
-  // ПРОМЕНИТЕ СА ТУК: Настройки за по-голямо разстояние
-  // ---------------------------------------------------------
   const simulation = d3
     .forceSimulation(nodes)
-    // 1. Увеличено разстояние на връзките (от 150 на 250)
     .force(
       "link",
       d3
@@ -121,15 +118,12 @@ function drawGraph(nodes, links) {
         .id((d) => d.id)
         .distance(250),
     )
-    // 2. Увеличена сила на отблъскване (от -400 на -800)
     .force("charge", d3.forceManyBody().strength(-800))
     .force("center", d3.forceCenter(width / 2, height / 2))
-    // 3. Увеличено свободно пространство около всеки възел (от 20 на 50)
     .force(
       "collide",
       d3.forceCollide().radius((d) => radius(d.type) + 50),
     );
-  // ---------------------------------------------------------
 
   const link = gCanvas
     .append("g")

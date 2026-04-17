@@ -1,45 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bg">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Интерактивна мрежа на предметите и професионални направления</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <h1>Мрежа на предметите и професионалните направления</h1>
-    
     <div class="controls">
-        <div class="control-group">
-            <label for="csvFileInput"><strong>Заредете CSV файл:</strong></label>
-            <input type="file" id="csvFileInput" accept=".csv" />
-        </div>
-        
-        <div class="control-group">
-            <label for="searchInput"><strong>Намери предмет:</strong></label>
-            <input type="text" id="searchInput" list="subject-list" placeholder="Напишете името на предмета..." disabled />
-            <datalist id="subject-list"></datalist>
-            <button id="searchBtn" disabled>Търси</button>
-        </div>
+      <div id="loadingMsg">Зареждане на данни...</div>
+      <div class="control-group">
+        <label for="searchInput"><strong>Намери предмет:</strong></label>
+        <input
+          type="text"
+          id="searchInput"
+          list="subject-list"
+          placeholder="Напишете името на предмета..."
+          disabled
+        />
+        <datalist id="subject-list"></datalist>
+        <button id="searchBtn" disabled>Търси</button>
+      </div>
 
-        <div class="instructions">Червено = Предмет | Синьо = предметна област. Задръжте мишката върху червените точки за бърз преглед или <b>кликнете върху тях</b> за детайлен списък.</div>
+      <div class="instructions">
+        Червено = Предмет | Синьо = Сфера. Задръжте мишката върху червените
+        точки за бърз преглед или <b>кликнете върху тях</b> за детайлен списък.
+      </div>
     </div>
 
     <div id="graph-container">
-        <svg id="network"></svg>
-        <div id="tooltip"></div>
+      <svg id="network"></svg>
+      <div id="tooltip"></div>
     </div>
 
     <div id="modalOverlay">
-        <div id="modalBox">
-            <button id="modalCloseBtn">&times;</button>
-            <h2 id="modalTitle">Заглавие</h2>
-            <div id="modalContent">Съдържание</div>
-        </div>
+      <div id="modalBox">
+        <button id="modalCloseBtn">&times;</button>
+        <h2 id="modalTitle">Заглавие</h2>
+        <div id="modalContent">Съдържание</div>
+      </div>
     </div>
 
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
