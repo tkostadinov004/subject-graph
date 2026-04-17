@@ -1,4 +1,5 @@
 import { rawData } from "./data.js"
+const isMobile = window.innerWidth <= 600;
 
 const appState = {
   svg: null,
@@ -226,7 +227,7 @@ function drawGraph(nodes, links) {
 }
 
 function drag(simulation) {
-  if (window.innerWidth < 600) { // prevent node dragging on mobile
+  if (isMobile) { // prevent node dragging on mobile
     return d3.drag();
   }
 
@@ -288,7 +289,6 @@ function performSearch() {
   );
 
   if (targetNode) {
-    const isMobile = window.innerWidth <= 600;
     const scale = isMobile ? 1.5 : 2.5;
 
     appState.svg
