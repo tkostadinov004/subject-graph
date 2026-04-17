@@ -226,6 +226,10 @@ function drawGraph(nodes, links) {
 }
 
 function drag(simulation) {
+  if (window.innerWidth < 600) { // prevent node dragging on mobile
+    return d3.drag();
+  }
+
   function dragstarted(event, d) {
     if (!event.active) simulation.alphaTarget(0.3).restart();
     d.fx = d.x;
