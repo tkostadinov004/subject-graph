@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивна мрежа на предметите и професиите</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .instructions {
+            font-size: 13px;
+            color: #666;
+        }
+        #graph-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 700px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        svg:active {
+            cursor: grabbing;
+        }
+        .links line {
+            stroke: #aaa;
+            stroke-opacity: 0.6;
+            stroke-width: 2px;
+        }
+        .nodes circle {
+            stroke: #fff;
+            stroke-width: 2px;
+            cursor: pointer;
+            transition: stroke-width 0.2s, stroke 0.2s;
+        }
+        .node-label {
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white;
+        }
+        #tooltip {
+            position: absolute;
+            opacity: 0;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            font-size: 13px;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        #tooltip ul {
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+        }
+        #tooltip li {
+            margin-bottom: 8px;
+        }
+
+        /* --- СТИЛОВЕ ЗА МОДАЛНИЯ ПРОЗОРЕЦ ПРИ КЛИК --- */
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #modalBox {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        #modalCloseBtn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            color: #7f8c8d;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        #modalCloseBtn:hover {
+            color: #e74c3c;
+        }
+        #modalTitle {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        #modalContent ul {
+            padding-left: 20px;
+        }
+        #modalContent li {
+            margin-bottom: 15px;
+            line-height: 1.5;
+            color: #34495e;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Мрежа на предметите и професиите</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="csvFileInput"><strong>Заредете CSV файл:</strong></label>
+            <input type="file" id="csvFileInput" accept=".csv" />
+        </div>
+        
+        <div class="control-group">
+            <label for="searchInput"><strong>Намери предмет:</strong></label>
+            <input type="text" id="searchInput" list="subject-list" placeholder="Напишете името на предмета..." disabled />
+            <datalist id="subject-list"></datalist>
+            <button id="searchBtn" disabled>Търси</button>
+        </div>
+
+        <div class="instructions">Червено = Предмет | Синьо = Сфера. Задръжте мишката върху червените точки за бърз преглед или <b>кликнете върху тях</b> за детайлен списък.</div>
+    </div>
+
+    <div id="graph-container">
+        <svg id="network"></svg>
+        <div id="tooltip"></div>
+    </div>
+
+    <div id="modalOverlay">
+        <div id="modalBox">
+            <button id="modalCloseBtn">&times;</button>
+            <h2 id="modalTitle">Заглавие</h2>
+            <div id="modalContent">Съдържание</div>
+        </div>
+    </div>
+
+    <script>
+        const appState = {
+            svg: null,
+            zoom: null,
+            width: 0,
+            height: 0,
+            nodes: []
+        };
+
+        const modalOverlay = document.getElementById("modalOverlay");
+        const modalCloseBtn = document.getElementById("modalCloseBtn");
+        
+        modalCloseBtn.addEventListener("click", () => {
+            modalOverlay.style.display = "none";
+        });
+        
+        modalOverlay.addEventListener("click", (event) => {
+            if (event.target === modalOverlay) {
+                modalOverlay.style.display = "none";
+            }
+        });
+
+        document.getElementById('csvFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvText = e.target.result;
+                processData(csvText);
+                
+                document.getElementById('searchInput').disabled = false;
+                document.getElementById('searchBtn').disabled = false;
+            };
+            reader.readAsText(file);
+        });
+
+        function processData(csvText) {
+            const data = d3.csvParse(csvText);
+            
+            const nodesMap = new Map();
+            const links = [];
+            const subjectListDatalist = document.getElementById("subject-list");
+            subjectListDatalist.innerHTML = ""; 
+
+            data.forEach(row => {
+                const category = row.Category?.trim();
+                const subject = row.Subject?.trim();
+                const role = row.Role?.trim();
+
+                if (!category || !subject) return;
+
+                if (!nodesMap.has(subject)) {
+                    nodesMap.set(subject, { id: subject, type: 'subject', roles: [] });
+                    const option = document.createElement("option");
+                    option.value = subject;
+                    subjectListDatalist.appendChild(option);
+                }
+
+                if (!nodesMap.has(category)) {
+                    nodesMap.set(category, { id: category, type: 'category' });
+                }
+
+                if (role) {
+                    nodesMap.get(subject).roles.push(`<b>${category}:</b> ${role}`);
+                }
+
+                const linkExists = links.some(l => l.source === subject && l.target === category);
+                if (!linkExists) {
+                    links.push({ source: subject, target: category });
+                }
+            });
+
+            const nodes = Array.from(nodesMap.values());
+            drawGraph(nodes, links);
+        }
+
+        function drawGraph(nodes, links) {
+            const svg = d3.select("#network");
+            svg.selectAll("*").remove(); 
+
+            const container = document.getElementById("graph-container");
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const tooltip = d3.select("#tooltip");
+
+            const color = (type) => type === 'subject' ? '#e74c3c' : '#3498db';
+            const radius = (type) => type === 'subject' ? 25 : 20;
+
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on("zoom", (event) => {
+                    gCanvas.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            const gCanvas = svg.append("g");
+
+            appState.svg = svg;
+            appState.zoom = zoom;
+            appState.width = width;
+            appState.height = height;
+            appState.nodes = nodes;
+
+            // ---------------------------------------------------------
+            // ПРОМЕНИТЕ СА ТУК: Настройки за по-голямо разстояние
+            // ---------------------------------------------------------
+            const simulation = d3.forceSimulation(nodes)
+                // 1. Увеличено разстояние на връзките (от 150 на 250)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(250))
+                // 2. Увеличена сила на отблъскване (от -400 на -800)
+                .force("charge", d3.forceManyBody().strength(-800))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                // 3. Увеличено свободно пространство около всеки възел (от 20 на 50)
+                .force("collide", d3.forceCollide().radius(d => radius(d.type) + 50));
+            // ---------------------------------------------------------
+
+            const link = gCanvas.append("g")
+                .attr("class", "links")
+                .selectAll("line")
+                .data(links)
+                .join("line");
+
+            const node = gCanvas.append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(nodes)
+                .join("g")
+                .call(drag(simulation));
+
+            node.append("circle")
+                .attr("r", d => radius(d.type))
+                .attr("fill", d => color(d.type))
+                .on("mouseover", function(event, d) {
+                    if (d.type === 'subject' && d.roles.length > 0) {
+                        tooltip.transition().duration(200).style("opacity", 1);
+                        
+                        let rolesHtml = d.roles.map(r => `<li>${r}</li>`).join("");
+                        tooltip.html(`<strong>Приложение на ${d.id}:</strong><br><ul>${rolesHtml}</ul>`);
+                        
+                        const [x, y] = d3.pointer(event, container);
+                        let tooltipX = x + 15;
+                        let tooltipY = y - 10;
+                        if (tooltipX + 400 > width) tooltipX = x - 420; 
+
+                        tooltip.style("left", tooltipX + "px").style("top", tooltipY + "px");
+                    }
+                    d3.select(this).style("stroke", "#2c3e50").style("stroke-width", "3px");
+                })
+                .on("mousemove", function(event, d) {
+                    if (d.type === 'subject') {
+                        const [x, y] = d3.pointer(event, container);
+                        let tooltipX = x + 15;
+                        let tooltipY = y - 10;
+                        if (tooltipX + 400 > width) tooltipX = x - 420; 
+
+                        tooltip.style("left", tooltipX + "px").style("top", tooltipY + "px");
+                    }
+                })
+                .on("mouseout", function(event, d) {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                    d3.select(this).style("stroke", "#fff").style("stroke-width", "2px");
+                })
+                .on("click", function(event, d) {
+                    if (event.defaultPrevented) return; 
+                    
+                    if (d.type === 'subject' && d.roles.length > 0) {
+                        tooltip.style("opacity", 0); 
+                        
+                        document.getElementById("modalTitle").innerHTML = `Подробно приложение на: <span style="color:#e74c3c">${d.id}</span>`;
+                        
+                        let rolesHtml = d.roles.map(r => `<li>${r}</li>`).join("");
+                        document.getElementById("modalContent").innerHTML = `<ul>${rolesHtml}</ul>`;
+                        
+                        modalOverlay.style.display = "flex";
+                    }
+                });
+
+            node.append("text")
+                .attr("class", "node-label")
+                .attr("dy", 4)
+                .attr("dx", d => radius(d.type) + 5)
+                .text(d => d.id);
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', performSearch);
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        function performSearch() {
+            if (!appState.nodes.length) return;
+            
+            const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (!searchTerm) return;
+
+            const targetNode = appState.nodes.find(n => 
+                n.type === 'subject' && n.id.toLowerCase() === searchTerm
+            );
+
+            if (targetNode) {
+                const scale = 2.5; 
+                appState.svg.transition().duration(1000).call(
+                    appState.zoom.transform,
+                    d3.zoomIdentity
+                        .translate(appState.width / 2, appState.height / 2)
+                        .scale(scale)
+                        .translate(-targetNode.x, -targetNode.y)
+                );
+
+                d3.selectAll('.nodes circle')
+                    .style('stroke', d => d.id === targetNode.id ? '#f1c40f' : '#fff')
+                    .style('stroke-width', d => d.id === targetNode.id ? '5px' : '2px');
+
+                setTimeout(() => {
+                    d3.selectAll('.nodes circle')
+                        .style('stroke', '#fff')
+                        .style('stroke-width', '2px');
+                }, 3000);
+            } else {
+                alert("Предметът не е намерен! Проверете името и опитайте отново.");
+            }
+        }
+    </script>
+</body>
+</html>
